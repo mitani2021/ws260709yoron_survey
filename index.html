@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>東西新報社 世論調査</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .phone {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      margin: 10px 0;
+    }
+    .subtitle {
+      font-size: 18px;
+      color: #ddd;
+      margin-bottom: 40px;
+    }
+    button {
+      width: 100%;
+      padding: 18px;
+      margin: 10px 0;
+      font-size: 20px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .answer {
+      background: #24c063;
+      color: white;
+    }
+    .decline {
+      background: #d94b4b;
+      color: white;
+    }
+    .card {
+      display: none;
+      background: white;
+      color: #222;
+      padding: 22px;
+      border-radius: 16px;
+      text-align: left;
+    }
+    .candidate {
+      background: #f1f3f5;
+      color: #222;
+    }
+    .done {
+      display: none;
+      text-align: center;
+      font-size: 20px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone" id="callScreen">
+  <div class="icon">📞</div>
+  <h1>東西新報社</h1>
+  <div class="subtitle">世論調査のお願い</div>
+
+  <button class="answer" onclick="showSurvey()">応答する</button>
+  <button class="decline" onclick="declineSurvey()">応答しない</button>
+</div>
+
+<div class="phone card" id="surveyScreen">
+  <h2>ミタニ市長選挙に関する世論調査</h2>
+  <p>現時点で、あなたはどの候補者を支持しますか。</p>
+
+  <button class="candidate" onclick="submitSurvey('神崎カオル')">神崎カオル</button>
+  <button class="candidate" onclick="submitSurvey('風間ショウ')">風間ショウ</button>
+  <button class="candidate" onclick="submitSurvey('姫島ユリ')">姫島ユリ</button>
+  <button class="candidate" onclick="submitSurvey('まだ決めていない')">まだ決めていない</button>
+</div>
+
+<div class="phone done" id="doneScreen">
+  <h2>ご協力ありがとうございました</h2>
+  <p>回答は記録されました。</p>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzhBLACgUqvSB4FMS_DwrLkENdfO9WjmkTT6bSZAd5uaa25IwNGJOJG_hkulalFPoCrVQ/exec';
+
+function getRespondentId() {
+  let id = localStorage.getItem('pollRespondentId');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('pollRespondentId', id);
+  }
+  return id;
+}
+
+function showSurvey() {
+  document.getElementById('callScreen').style.display = 'none';
+  document.getElementById('surveyScreen').style.display = 'block';
+}
+
+function declineSurvey() {
+  sendData('協力しない', '');
+}
+
+function submitSurvey(candidate) {
+  sendData('協力する', candidate);
+}
+
+function sendData(cooperate, support) {
+  const formData = new FormData();
+  formData.append('respondentId', getRespondentId());
+  formData.append('cooperate', cooperate);
+  formData.append('support', support);
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    body: formData,
+    mode: 'no-cors'
+  });
+
+  document.getElementById('callScreen').style.display = 'none';
+  document.getElementById('surveyScreen').style.display = 'none';
+  document.getElementById('doneScreen').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
