@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>世論調査 結果</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+      color: #222;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .summary {
+      background: #eef3ff;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .result {
+      margin: 18px 0;
+      padding: 16px;
+      border-bottom: 1px solid #ddd;
+    }
+    .name {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .rate {
+      font-size: 30px;
+      margin: 8px 0;
+    }
+    .bar {
+      height: 18px;
+      background: #ddd;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .bar-inner {
+      height: 100%;
+      background: #4a6cf7;
+    }
+    .note {
+      font-size: 14px;
+      color: #555;
+      background: #fff8dc;
+      padding: 14px;
+      border-radius: 10px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>東西新報社 世論調査結果</h1>
+
+  <div class="summary" id="summary">読み込み中...</div>
+
+  <div id="results"></div>
+
+  <div class="note">
+    この結果は、世論調査に協力した人の回答に基づく推計です。
+    協力しなかった人の意見が異なる場合、実際の支持率とはずれる可能性があります。
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzhBLACgUqvSB4FMS_DwrLkENdfO9WjmkTT6bSZAd5uaa25IwNGJOJG_hkulalFPoCrVQ/exec';
+const POPULATION = 320;
+const candidates = ['神崎カオル', '風間ショウ', '姫島ユリ', 'まだ決めていない'];
+
+function loadData() {
+  const callbackName = 'callback_' + Date.now();
+
+  window[callbackName] = function(data) {
+    renderResults(data);
+    delete window[callbackName];
+  };
+
+  const script = document.createElement('script');
+  script.src = GAS_URL + '?callback=' + callbackName;
+  document.body.appendChild(script);
+}
+
+function renderResults(data) {
+  const totalAccess = data.length;
+  const cooperators = data.filter(r => r.cooperate === '協力する');
+  const nonCooperators = data.filter(r => r.cooperate === '協力しない');
+
+  const n = cooperators.length;
+  const responseRate = totalAccess === 0 ? 0 : n / totalAccess;
+
+  document.getElementById('summary').innerHTML = `
+    <strong>調査対象者数：</strong>${POPULATION}人<br>
+    <strong>応答記録数：</strong>${totalAccess}人<br>
+    <strong>回答協力者数：</strong>${n}人<br>
+    <strong>非協力者数：</strong>${nonCooperators.length}人<br>
+    <strong>協力率：</strong>${(responseRate * 100).toFixed(1)}％
+  `;
+
+  if (n === 0) {
+    document.getElementById('results').innerHTML = '<p>まだ回答がありません。</p>';
+    return;
+  }
+
+  const counts = {};
+  candidates.forEach(c => counts[c] = 0);
+
+  cooperators.forEach(r => {
+    if (counts[r.support] !== undefined) {
+      counts[r.support]++;
+    }
+  });
+
+  let html = '';
+
+  candidates.forEach(c => {
+    const count = counts[c];
+    const p = count / n;
+
+    const fpc = Math.sqrt((POPULATION - n) / (POPULATION - 1));
+    const se = Math.sqrt((p * (1 - p)) / n) * fpc;
+    const margin = 1.96 * se;
+
+    const lower = Math.max(0, p - margin);
+    const upper = Math.min(1, p + margin);
+
+    html += `
+      <div class="result">
+        <div class="name">${c}</div>
+        <div class="rate">${(p * 100).toFixed(1)}％</div>
+        <div class="bar">
+          <div class="bar-inner" style="width:${p * 100}%"></div>
+        </div>
+        <div>回答数：${count}人</div>
+        <div>95％信頼区間：${(lower * 100).toFixed(1)}％〜${(upper * 100).toFixed(1)}％</div>
+      </div>
+    `;
+  });
+
+  document.getElementById('results').innerHTML = html;
+}
+
+loadData();
+setInterval(loadData, 10000);
+</script>
+
+</body>
+</html>
