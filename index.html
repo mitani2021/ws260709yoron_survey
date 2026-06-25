@@ -5,84 +5,144 @@
   <title>東西新報社 世論調査</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: system-ui, sans-serif;
       background: #111;
       color: white;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
+      padding: 18px;
     }
-    .phone {
+
+    .screen {
       width: 100%;
-      max-width: 420px;
+      max-width: 430px;
       text-align: center;
     }
-    .icon {
-      font-size: 64px;
-      margin-bottom: 20px;
+
+    .phone-icon {
+      font-size: 76px;
+      display: inline-block;
+      animation: ring 0.9s infinite;
+      transform-origin: 50% 0%;
+      margin-bottom: 12px;
     }
+
+    @keyframes ring {
+      0% { transform: rotate(0deg); }
+      5% { transform: rotate(-15deg); }
+      10% { transform: rotate(15deg); }
+      15% { transform: rotate(-15deg); }
+      20% { transform: rotate(15deg); }
+      25% { transform: rotate(-10deg); }
+      30% { transform: rotate(10deg); }
+      35% { transform: rotate(-5deg); }
+      40% { transform: rotate(5deg); }
+      45% { transform: rotate(0deg); }
+      100% { transform: rotate(0deg); }
+    }
+
     h1 {
-      font-size: 28px;
-      margin: 10px 0;
+      font-size: 27px;
+      margin: 8px 0;
     }
+
     .subtitle {
       font-size: 18px;
       color: #ddd;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
     }
+
+    .situation-box {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 16px;
+      padding: 18px;
+      margin: 22px 0;
+      line-height: 1.7;
+      font-size: 18px;
+    }
+
+    .notice {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #ddd;
+      margin: 20px 0;
+    }
+
     button {
       width: 100%;
-      padding: 18px;
+      padding: 17px;
       margin: 10px 0;
-      font-size: 20px;
       border: none;
-      border-radius: 14px;
+      border-radius: 16px;
+      font-size: 20px;
+      font-weight: bold;
       cursor: pointer;
     }
+
     .answer {
-      background: #24c063;
+      background: #25c267;
       color: white;
     }
+
     .decline {
       background: #d94b4b;
       color: white;
     }
+
     .card {
       display: none;
       background: white;
       color: #222;
       padding: 22px;
-      border-radius: 16px;
+      border-radius: 18px;
       text-align: left;
     }
+
     .candidate {
-      background: #f1f3f5;
+      background: #f0f2f5;
       color: #222;
+      text-align: left;
     }
+
     .done {
       display: none;
-      text-align: center;
-      font-size: 20px;
       line-height: 1.7;
     }
   </style>
 </head>
 <body>
 
-<div class="phone" id="callScreen">
-  <div class="icon">📞</div>
+<div class="screen" id="callScreen">
+  <div class="phone-icon">📞</div>
+
   <h1>東西新報社</h1>
-  <div class="subtitle">世論調査のお願い</div>
+  <div class="subtitle">世論調査センターから着信中…</div>
+
+  <div class="situation-box">
+    <strong>あなたの現在の状況</strong><br>
+    <span id="situationText"></span>
+  </div>
+
+  <div class="notice">
+    東西新報社が、ミタニ市長選挙に関する電話世論調査を実施しています。<br>
+    <strong>この調査への協力は任意です。</strong><br>
+    調査に協力するかどうかを選択してください。
+  </div>
 
   <button class="answer" onclick="showSurvey()">応答する</button>
   <button class="decline" onclick="declineSurvey()">応答しない</button>
 </div>
 
-<div class="phone card" id="surveyScreen">
+<div class="screen card" id="surveyScreen">
   <h2>ミタニ市長選挙に関する世論調査</h2>
   <p>現時点で、あなたはどの候補者を支持しますか。</p>
 
@@ -92,13 +152,26 @@
   <button class="candidate" onclick="submitSurvey('まだ決めていない')">まだ決めていない</button>
 </div>
 
-<div class="phone done" id="doneScreen">
+<div class="screen done" id="doneScreen">
   <h2>ご協力ありがとうございました</h2>
   <p>回答は記録されました。</p>
 </div>
 
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzhBLACgUqvSB4FMS_DwrLkENdfO9WjmkTT6bSZAd5uaa25IwNGJOJG_hkulalFPoCrVQ/exec';
+
+const situations = [
+  '😊 あなたは今、自宅でくつろいでいます。',
+  '🎮 あなたは今、友達と一緒にゲームをしています。',
+  '🚃 あなたは今、電車で帰宅中です。',
+  '🍳 あなたは今、夕食を作っています。',
+  '📚 あなたは今、授業を受けています。',
+  '💼 あなたは今、アルバイトをしています。',
+  '👶 あなたは今、小さな子どもの世話をしています。',
+  '🎤 あなたは今、大好きなアーティストのライブ会場に来ています。'
+];
+
+let currentSituation = '';
 
 function getRespondentId() {
   let id = localStorage.getItem('pollRespondentId');
@@ -107,6 +180,17 @@ function getRespondentId() {
     localStorage.setItem('pollRespondentId', id);
   }
   return id;
+}
+
+function setSituation() {
+  const saved = sessionStorage.getItem('pollSituation');
+  if (saved) {
+    currentSituation = saved;
+  } else {
+    currentSituation = situations[Math.floor(Math.random() * situations.length)];
+    sessionStorage.setItem('pollSituation', currentSituation);
+  }
+  document.getElementById('situationText').textContent = currentSituation;
 }
 
 function showSurvey() {
@@ -125,6 +209,7 @@ function submitSurvey(candidate) {
 function sendData(cooperate, support) {
   const formData = new FormData();
   formData.append('respondentId', getRespondentId());
+  formData.append('situation', currentSituation);
   formData.append('cooperate', cooperate);
   formData.append('support', support);
 
@@ -138,6 +223,8 @@ function sendData(cooperate, support) {
   document.getElementById('surveyScreen').style.display = 'none';
   document.getElementById('doneScreen').style.display = 'block';
 }
+
+setSituation();
 </script>
 
 </body>
